@@ -1,2 +1,4 @@
-# vue-study
-Vue.js 공부 저장소
+# Vue & Nuxt Study
+
+- Vue 2, Vue 3
+- Nuxt 2, Nuxt 3

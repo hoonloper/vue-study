@@ -24,16 +24,56 @@
     <p>{{ lesson.text }}</p>
     <LessonCompleteButton
       :model-value="isLessonComplete"
-      @update:model-value="toggleComplete"
+      @update:model-value="throw createError('Could not update');"
     />
   </div>
 </template>
 
 <script setup>
 import { useCourse } from "~~/composables/useCourse";
-
 const course = useCourse();
 const route = useRoute();
+
+definePageMeta({
+  middleware: ({ params }, from) => {
+    const chapter = computed(() => {
+      return course.chapters.find(
+        (chapter) => chapter.slug === params.chapterSlug
+      );
+    });
+
+    if (!chapter.value) {
+      return abortNavigation(
+        createError({
+          statusCode: 404,
+          message: "Chapter not found",
+        })
+      );
+    }
+    const lesson = computed(() => {
+      return chapter.value.lessons.find(
+        (lesson) => lesson.slug === route.params.lessonSlug
+      );
+    });
+
+    if (!lesson.value) {
+      return abortNavigation(
+        createError({
+          statusCode: 404,
+          message: "Lesson not found",
+        })
+      );
+    }
+
+    return true;
+  },
+});
+
+if (route.params.lessonSlug === "3-typing-component-events") {
+  console.log(
+    route.params.paramthatdoesnotexistwhoops.capitalizeIsNotAMethod()
+  );
+}
 
 const chapter = computed(() => {
   return course.chapters.find(

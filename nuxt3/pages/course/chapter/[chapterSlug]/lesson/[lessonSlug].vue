@@ -14,7 +14,8 @@
     {{ lesson.text }}
     <ClientOnly>
       <LessonCompleteButton
-        :model-value="isLessonComplete"
+        v-if="user"
+        :model-value="isCompleted"
         @update:model-value="toggleComplete"
       />
     </ClientOnly>
@@ -22,16 +23,24 @@
 </template>
 
 <script setup>
-const course = useCourse();
+import { courseProgress } from "~/stores/courseProgress.ts";
+import { useCourseProgress } from "~~/stores/courseProgress";
+const course = await useCourse();
 const route = useRoute();
+const { chapterSlug, lessonSlug } = route.params;
+const lesson = await useLesson(chapterSlug, lessonSlug);
+const store = useCourseProgress();
+const { initialize, toggleComplete } = store;
+
+initialize();
 
 definePageMeta({
   middleware: [
-    function ({ params }, from) {
-      const course = useCourse();
+    async function ({ params }, from) {
+      const course = await useCourse();
 
       const chapter = computed(() => {
-        return course.chapters.find(
+        return course.value.chapters.find(
           (chapter) => chapter.slug === params.chapterSlug
         );
       });
@@ -64,42 +73,21 @@ definePageMeta({
   ],
 });
 
-const chapter = computed(() => {
-  return course.chapters.find(
-    (chapter) => chapter.slug === route.params.chapterSlug
-  );
+const isCompleted = computed(() => {
+  return store.progress?.[chapterSlug]?.[lessonSlug] || 0;
 });
-const lesson = computed(() => {
-  return chapter.value.lessons.find(
-    (lesson) => lesson.slug === route.params.lessonSlug
+
+const chapter = computed(() => {
+  return course.value.chapters.find(
+    (chapter) => chapter.slug === route.params.chapterSlug
   );
 });
 
 const title = computed(() => {
-  return `${lesson.value.title} - ${course.title}`;
+  return `${lesson.value.title} - ${course.value.title}`;
 });
+
 useHead({
   title,
 });
-
-const progress = useLocalStorage("progress", []);
-
-const isLessonComplete = computed(() => {
-  if (!progress.value[chapter.value.number - 1]) {
-    return false;
-  }
-  if (!progress.value[chapter.value.number - 1][lesson.value.number - 1]) {
-    return false;
-  }
-  return progress.value[chapter.value.number - 1][lesson.value.number - 1];
-});
-
-const toggleComplete = () => {
-  if (!progress.value[chapter.value.number - 1]) {
-    progress.value[chapter.value.number - 1] = [];
-  }
-
-  progress.value[chapter.value.number - 1][lesson.value.number - 1] =
-    !isLessonComplete.value;
-};
 </script>
